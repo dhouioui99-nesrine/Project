@@ -63,6 +63,24 @@ pipeline {
       }
     }
 
+    // 🔹 Stage d'analyse SonarQube
+    stage('SonarQube Analysis') {
+      steps {
+        withSonarQubeEnv('SonarQube') { // "SonarQube" = nom que tu as configuré dans Jenkins (screenshot)
+          sh 'mvn sonar:sonar -Dsonar.projectKey=IntegrationAPI -Dsonar.projectName=IntegrationAPI'
+        }
+      }
+    }
+
+    // 🔹 Contrôle du Quality Gate
+    stage("Quality Gate") {
+      steps {
+        timeout(time: 2, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+
     stage('Build Docker Image') {
       steps {
         script {
