@@ -64,13 +64,21 @@ pipeline {
     }
 
     // 🔹 Stage d'analyse SonarQube
-    stage('SonarQube Analysis') {
+       stage('SonarQube Analysis') {
+      agent {
+        docker {
+          image 'maven:3.9.9-eclipse-temurin-21'
+          reuseNode true
+          args '-v /root/.m2:/root/.m2'
+        }
+      }
       steps {
-        withSonarQubeEnv('SonarQube') { // "SonarQube" = nom que tu as configuré dans Jenkins (screenshot)
+        withSonarQubeEnv('SonarQube') {
           sh 'mvn sonar:sonar -Dsonar.projectKey=IntegrationAPI -Dsonar.projectName=IntegrationAPI'
         }
       }
     }
+
 
     // 🔹 Contrôle du Quality Gate
     stage("Quality Gate") {
