@@ -41,18 +41,17 @@ pipeline {
       }
     }
 
-    stage('SonarQube Analysis') {
-      steps {
-        withSonarQubeEnv('SonarQube') {
-          sh '''
-            mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
-              -Dsonar.projectKey=IntegrationAPI \
-              -Dsonar.projectName=IntegrationAPI \
-              -Dsonar.host.url=http://sonarqube:9000
-          '''
-        }
-      }
+   stage('SonarQube Analysis') {
+  steps {
+    withSonarQubeEnv('SonarQube') {
+      sh '''
+        mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
+          -Dsonar.projectKey=IntegrationAPI \
+          -Dsonar.projectName=IntegrationAPI
+      '''
     }
+  }
+}
 
     stage("Quality Gate") {
       steps {
