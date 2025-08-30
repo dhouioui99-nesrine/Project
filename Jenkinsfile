@@ -13,7 +13,7 @@ pipeline {
   }
 
   parameters {
-    string(name: 'BRANCH_NAME', defaultValue: 'Devops2025', description: 'Git branch to build')
+    string(name: 'BRANCH_NAME', defaultValue: 'backend', description: 'Git branch to build')
     string(name: 'CHANGE_TARGET', defaultValue: '', description: 'Git change ID for the target merge requests')
   }
 
