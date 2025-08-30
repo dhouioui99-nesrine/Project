@@ -31,32 +31,33 @@ pipeline {
       }
     }
 
-   stage('Maven Build') {
-  agent {
-    docker {
-      image 'maven:3.9.9-eclipse-temurin-21'
-      reuseNode true
-      args '-v /root/.m2:/root/.m2'
-    }
-  }
-  steps {
-    sh 'java -version'
-    sh 'mvn -v'
-    sh 'mvn clean install -Dmaven.test.skip=true'
-    echo '✅ Build completed.'
-  }
-}
-
-
-    stage('Maven Compile') {
+    stage('Maven Build') {
       agent {
         docker {
-          image 'maven:3.9.9-eclipse-temurin-21'   // ✅ Java 21 aussi ici
+          image 'maven:3.9.9-eclipse-temurin-21'
           reuseNode true
           args '-v /root/.m2:/root/.m2'
         }
       }
       steps {
+        sh 'java -version'
+        sh 'mvn -v'
+        sh 'mvn clean install -Dmaven.test.skip=true'
+        echo '✅ Build completed.'
+      }
+    }
+
+    stage('Maven Compile') {
+      agent {
+        docker {
+          image 'maven:3.9.9-eclipse-temurin-21'
+          reuseNode true
+          args '-v /root/.m2:/root/.m2'
+        }
+      }
+      steps {
+        sh 'java -version'
+        sh 'mvn -v'
         sh 'mvn compile -Dmaven.test.skip=true'
         echo '✅ Compile completed.'
       }
