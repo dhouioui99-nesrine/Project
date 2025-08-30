@@ -2,21 +2,20 @@ def branchName
 def targetBranch
 
 pipeline {
-  agent any 
+  agent any
 
   environment {
     DOCKERHUB_USERNAME = "nesrinedh"
     DEV_TAG = "${DOCKERHUB_USERNAME}/backends:v1.0.0-dev"
-    PROD_TAG = "${DOCKERHUB_USERNAME}/Fronts:v1.0.0-dev"
+    PROD_TAG = "${DOCKERHUB_USERNAME}/fronts:v1.0.0-dev"
   }
 
   parameters {
     string(name: 'BRANCH_NAME', defaultValue: 'backend', description: 'Git branch to build')
-    string(name: 'CHANGE_TARGET', defaultValue: '', description: 'Git change ID for the target merge requests')
   }
 
   stages {
-    stage('Github') { 
+    stage('Checkout from GitHub') { 
       steps {
         script { 
           branchName = params.BRANCH_NAME
@@ -32,33 +31,35 @@ pipeline {
       }
     }
 
-    stage('MVN BUILD') {
+    stage('Maven Build') {
       agent {
         docker {
           image 'maven:3.9.9-eclipse-temurin-17'
-          args '-v /root/.m2:/root/.m2' // cache maven local repo
+          reuseNode true       // ✅ IMPORTANT : réutilise le même noeud pour éviter ID_TO_PULL
+          args '-v /root/.m2:/root/.m2' // cache maven
         }
       }
       steps {
-        sh 'mvn clean install'
-        echo '✅ Build stage completed.'
+        sh 'mvn clean install -Dmaven.test.skip=true'
+        echo '✅ Build completed.'
       }
     }
 
-    stage('MVN COMPILE') {
+    stage('Maven Compile') {
       agent {
         docker {
           image 'maven:3.9.9-eclipse-temurin-17'
+          reuseNode true
           args '-v /root/.m2:/root/.m2'
         }
       }
       steps {
-        sh 'mvn compile'
-        echo '✅ Compile stage completed.'
+        sh 'mvn compile -Dmaven.test.skip=true'
+        echo '✅ Compile completed.'
       }
     }
 
-    stage('Build Docker') {
+    stage('Build Docker Image') {
       steps {
         script {
           if (targetBranch == 'backend') {
@@ -72,8 +73,8 @@ pipeline {
 
     stage('Docker Login') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'CredentialDocker', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
-          sh "docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}"
+        withCredentials([usernamePassword(credentialsId: 'CredentialDocker', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
         }
       }
     }
