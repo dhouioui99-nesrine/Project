@@ -2,7 +2,12 @@ def branchName
 def targetBranch
 
 pipeline {
-  agent any
+  agent {
+    docker {
+      image 'maven:3.9.9-eclipse-temurin-21'
+      args '-v /root/.m2:/root/.m2'
+    }
+  }
 
   environment {
     DOCKERHUB_USERNAME = "nesrinedh"
@@ -15,9 +20,9 @@ pipeline {
   }
 
   stages {
-    stage('Checkout from GitHub') { 
+    stage('Checkout from GitHub') {
       steps {
-        script { 
+        script {
           branchName = params.BRANCH_NAME
           if (!branchName?.trim()) {
             error("❌ BRANCH_NAME is empty. Please provide a valid branch.")
@@ -31,26 +36,12 @@ pipeline {
     }
 
     stage('Maven Build') {
-      agent {
-        docker {
-          image 'maven:3.9.9-eclipse-temurin-21'
-          reuseNode true
-          args '-v /root/.m2:/root/.m2'
-        }
-      }
       steps {
         sh 'mvn clean install -Dmaven.test.skip=true'
       }
     }
 
     stage('SonarQube Analysis') {
-      agent {
-        docker {
-          image 'maven:3.9.9-eclipse-temurin-21'
-          reuseNode true
-          args '-v /root/.m2:/root/.m2'
-        }
-      }
       steps {
         withSonarQubeEnv('SonarQube') {
           sh '''
