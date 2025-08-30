@@ -61,19 +61,20 @@ pipeline {
 
     // ✅ FIX : exécuter SonarQube dans le même container Maven
     stage('SonarQube Analysis') {
-      agent {
-        docker {
-          image 'maven:3.9.9-eclipse-temurin-21'
-          reuseNode true
-          args '-v /root/.m2:/root/.m2'
-        }
-      }
-      steps {
-        withSonarQubeEnv('SonarQube') {
-          sh 'mvn sonar:sonar -Dsonar.projectKey=IntegrationAPI -Dsonar.projectName=IntegrationAPI'
-        }
-      }
+  agent {
+    docker {
+      image 'maven:3.9.9-eclipse-temurin-21'
+      reuseNode true
+      args '-v /root/.m2:/root/.m2'
     }
+  }
+  steps {
+    withSonarQubeEnv('SonarQube') {
+      sh 'mvn sonar:sonar -Dsonar.projectKey=IntegrationAPI -Dsonar.projectName=IntegrationAPI'
+    }
+  }
+}
+
 
     stage("Quality Gate") {
       steps {
