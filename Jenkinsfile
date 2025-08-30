@@ -1,4 +1,3 @@
-
 def branchName
 def targetBranch
 
@@ -8,8 +7,7 @@ pipeline {
   environment {
     DOCKERHUB_USERNAME = "nesrinedh"
     DEV_TAG = "${DOCKERHUB_USERNAME}/backends:v1.0.0-dev"
-      PROD_TAG = "${DOCKERHUB_USERNAME}/Fronts:v1.0.0-dev"
-  
+    PROD_TAG = "${DOCKERHUB_USERNAME}/Fronts:v1.0.0-dev"
   }
 
   parameters {
@@ -35,6 +33,12 @@ pipeline {
     }
 
     stage('MVN BUILD') {
+      agent {
+        docker {
+          image 'maven:3.9.9-eclipse-temurin-17'
+          args '-v /root/.m2:/root/.m2' // cache maven local repo
+        }
+      }
       steps {
         sh 'mvn clean install'
         echo '✅ Build stage completed.'
@@ -42,6 +46,12 @@ pipeline {
     }
 
     stage('MVN COMPILE') {
+      agent {
+        docker {
+          image 'maven:3.9.9-eclipse-temurin-17'
+          args '-v /root/.m2:/root/.m2'
+        }
+      }
       steps {
         sh 'mvn compile'
         echo '✅ Compile stage completed.'
@@ -70,18 +80,14 @@ pipeline {
 
     stage('Docker Push') {
       steps {
-        sh "docker push ${DEV_TAG}"
+        script {
+          if (targetBranch == 'backend') {
+            sh "docker push ${DEV_TAG}"
+          } else if (targetBranch == 'front') {
+            sh "docker push ${PROD_TAG}"
+          }
+        }
       }
     }
-
- 
-
-
-      
-
-
-
-
-    
   }
 }
