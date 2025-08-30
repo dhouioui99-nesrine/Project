@@ -26,7 +26,6 @@ pipeline {
           git branch: branchName,
               url: 'https://github.com/dhouioui99-nesrine/Project.git',
               credentialsId: 'gitcredential'
-          echo "✅ Current branch: ${branchName}"
         }
       }
     }
@@ -40,22 +39,7 @@ pipeline {
         }
       }
       steps {
-        sh 'java -version'
-        sh 'mvn -v'
         sh 'mvn clean install -Dmaven.test.skip=true'
-      }
-    }
-
-    stage('Maven Compile') {
-      agent {
-        docker {
-          image 'maven:3.9.9-eclipse-temurin-21'
-          reuseNode true
-          args '-v /root/.m2:/root/.m2'
-        }
-      }
-      steps {
-        sh 'mvn compile -Dmaven.test.skip=true'
       }
     }
 
@@ -92,28 +76,23 @@ pipeline {
         script {
           if (targetBranch == 'backend') {
             sh "docker build -t ${DEV_TAG} ."
-          } else if (targetBranch == 'front') {
+          } else {
             sh "docker build -t ${PROD_TAG} ."
           }
         }
       }
     }
 
-    stage('Docker Login') {
+    stage('Docker Login & Push') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'CredentialDocker', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-        }
-      }
-    }
-
-    stage('Docker Push') {
-      steps {
-        script {
-          if (targetBranch == 'backend') {
-            sh "docker push ${DEV_TAG}"
-          } else if (targetBranch == 'front') {
-            sh "docker push ${PROD_TAG}"
+          script {
+            if (targetBranch == 'backend') {
+              sh "docker push ${DEV_TAG}"
+            } else {
+              sh "docker push ${PROD_TAG}"
+            }
           }
         }
       }
