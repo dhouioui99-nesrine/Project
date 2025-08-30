@@ -34,7 +34,8 @@ pipeline {
     stage('Maven Build') {
       agent {
         docker {
-          image 'maven:3.9.9-eclipse-temurin-21'   // ✅ Java 21 au lieu de Java 17
+            
+          image 'maven:3.9.9-eclipse-temurin-21'    // ✅ Java 21 au lieu de Java 17
           reuseNode true
           args '-v /root/.m2:/root/.m2'
         }
