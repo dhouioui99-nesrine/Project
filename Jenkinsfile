@@ -34,9 +34,9 @@ pipeline {
     stage('Maven Build') {
       agent {
         docker {
-          image 'maven:3.9.9-eclipse-temurin-17'
-          reuseNode true       // ✅ IMPORTANT : réutilise le même noeud pour éviter ID_TO_PULL
-          args '-v /root/.m2:/root/.m2' // cache maven
+          image 'maven:3.9.9-eclipse-temurin-21'   // ✅ Java 21 au lieu de Java 17
+          reuseNode true
+          args '-v /root/.m2:/root/.m2'
         }
       }
       steps {
@@ -48,7 +48,7 @@ pipeline {
     stage('Maven Compile') {
       agent {
         docker {
-          image 'maven:3.9.9-eclipse-temurin-17'
+          image 'maven:3.9.9-eclipse-temurin-21'   // ✅ Java 21 aussi ici
           reuseNode true
           args '-v /root/.m2:/root/.m2'
         }
