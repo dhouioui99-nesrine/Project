@@ -41,10 +41,11 @@ pipeline {
       }
     }
 
-   stage('SonarQube Analysis') {
+  stage('SonarQube Analysis') {
   steps {
     withSonarQubeEnv('SonarQube') {
       sh '''
+        echo "➡️ Debug: SONAR_HOST_URL=$SONAR_HOST_URL"
         mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
           -Dsonar.projectKey=IntegrationAPI \
           -Dsonar.projectName=IntegrationAPI \
@@ -54,6 +55,7 @@ pipeline {
     }
   }
 }
+
 
     stage("Quality Gate") {
       steps {
