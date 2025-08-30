@@ -43,7 +43,6 @@ pipeline {
         sh 'java -version'
         sh 'mvn -v'
         sh 'mvn clean install -Dmaven.test.skip=true'
-        echo '✅ Build completed.'
       }
     }
 
@@ -56,15 +55,12 @@ pipeline {
         }
       }
       steps {
-        sh 'java -version'
-        sh 'mvn -v'
         sh 'mvn compile -Dmaven.test.skip=true'
-        echo '✅ Compile completed.'
       }
     }
 
-    // 🔹 Stage d'analyse SonarQube
-       stage('SonarQube Analysis') {
+    // ✅ FIX : exécuter SonarQube dans le même container Maven
+    stage('SonarQube Analysis') {
       agent {
         docker {
           image 'maven:3.9.9-eclipse-temurin-21'
@@ -79,8 +75,6 @@ pipeline {
       }
     }
 
-
-    // 🔹 Contrôle du Quality Gate
     stage("Quality Gate") {
       steps {
         timeout(time: 2, unit: 'MINUTES') {
