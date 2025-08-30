@@ -41,22 +41,19 @@ pipeline {
       }
     }
 
-    stage('SonarQube Analysis') {
-      steps {
-        withSonarQubeEnv('SonarQube') {
-          sh '''
-            echo "➡️ Debug SonarQube :"
-            echo "SONAR_HOST_URL = $SONAR_HOST_URL"
-            echo "SONAR_AUTH_TOKEN = $SONAR_AUTH_TOKEN"
-
-            mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
-              -Dsonar.projectKey=IntegrationAPI \
-              -Dsonar.projectName=IntegrationAPI \
-              -Dsonar.host.url=$SONAR_HOST_URL
-          '''
-        }
-      }
+   stage('SonarQube Analysis') {
+  steps {
+    withSonarQubeEnv('SonarQube') {
+      sh '''
+        mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
+          -Dsonar.projectKey=IntegrationAPI \
+          -Dsonar.projectName=IntegrationAPI \
+          -Dsonar.host.url=http://sonarqube:9000 \
+          -Dsonar.login=$SONAR_AUTH_TOKEN
+      '''
     }
+  }
+}
 
     stage("Quality Gate") {
       steps {
