@@ -41,25 +41,26 @@ pipeline {
       }
     }
 
-  stage('SonarQube Analysis') {
-  agent {
-    docker {
-      image 'maven:3.9.9-eclipse-temurin-21'
-      reuseNode true
-      args '-v /root/.m2:/root/.m2'
+    stage('SonarQube Analysis') {
+      agent {
+        docker {
+          image 'maven:3.9.9-eclipse-temurin-21'
+          reuseNode true
+          args '-v /root/.m2:/root/.m2'
+        }
+      }
+      steps {
+        withSonarQubeEnv('SonarQube') {
+          sh '''
+            mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
+              -Dsonar.projectKey=IntegrationAPI \
+              -Dsonar.projectName=IntegrationAPI \
+              -Dsonar.host.url=http://sonarqube:9000
+          '''
+        }
+      }
     }
-  }
-  steps {
-    withSonarQubeEnv('SonarQube') {
-      sh '''
-        mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar \
-          -Dsonar.projectKey=IntegrationAPI \
-          -Dsonar.projectName=IntegrationAPI \
-          -Dsonar.host.url=http://sonarqube:9000
-      '''
-    }
-  }
-}
+
 
   steps {
     withSonarQubeEnv('SonarQube') {
