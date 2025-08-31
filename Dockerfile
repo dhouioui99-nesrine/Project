@@ -1,18 +1,16 @@
-# Use a minimal JDK image for running the application.
-# OpenJDK 17 is a good choice for modern Spring Boot applications.
-FROM openjdk:17-jdk-slim
+FROM jenkins/jenkins:lts
 
-# Set the working directory inside the container.
-WORKDIR /app
+# Passer root pour installer docker client
+USER root
 
-# Copy the built JAR file from your Maven target directory.
-# This is the corrected line using your project's artifactId and version.
-COPY target/IntegrationAPI-0.0.1-SNAPSHOT.jar app.jar
+# Installer Docker CLI et dépendances
+RUN apt-get update && \
+    apt-get install -y lsb-release apt-transport-https ca-certificates curl gnupg && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli && \
+    rm -rf /var/lib/apt/lists/*
 
-# Expose the port your Spring Boot application runs on.
-# The default is 8080.
-EXPOSE 8080
-
-# Define the command to run the application when the container starts.
-# This executes the Java application from the copied JAR.
-CMD ["java", "-jar", "app.jar"]
+# Revenir à l’utilisateur Jenkins
+USER jenkins
