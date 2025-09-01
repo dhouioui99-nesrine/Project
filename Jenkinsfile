@@ -1,29 +1,30 @@
 def DOCKERHUB_USERNAME = "nesrinedh"
 
 pipeline {
-    // We'll use the 'node' docker agent, which comes with npm pre-installed
-    agent {
-        docker {
-            image 'node:20'
-        }
-    }
+    // We'll use a single 'agent any' and then specify a Docker agent for each stage that needs it.
+    // This provides more control.
+    agent any
 
     stages {
         stage('Frontend - Build & Test') {
+            agent {
+                docker {
+                    // Use a node image for the npm commands
+                    image 'node:20'
+                }
+            }
             steps {
-                // The current working directory will be the repository root
-                // since the Jenkinsfile is in the 'front' branch
                 sh 'npm install'
                 sh 'npm run build -- --prod'
             }
         }
         
         stage('Build Docker Image') {
-            // The Docker agent needs the Docker daemon, so we add this configuration.
             agent {
                 docker {
-                    image 'docker:dind' // Use a Docker in Docker image for building
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                    image 'docker:dind'
+                    // This is the crucial part that passes the host's Docker socket to the container
+                    args '-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine'
                 }
             }
             steps {
@@ -35,7 +36,8 @@ pipeline {
             agent {
                 docker {
                     image 'docker:dind'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                    // The same argument is needed for the push command
+                    args '-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine'
                 }
             }
             steps {
