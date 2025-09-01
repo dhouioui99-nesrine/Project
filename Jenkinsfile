@@ -1,28 +1,23 @@
 def DOCKERHUB_USERNAME = "nesrinedh"
 
 pipeline {
-    agent none 
+    agent {
+        docker {
+            image 'docker:dind'
+            args '-v //./pipe/dockerDesktopEngine://./pipe/docker.sock'
+        }
+    }
 
     stages {
         stage('Frontend - Build & Test') {
-            agent {
-                docker {
-                    image 'node:20'
-                }
-            }
             steps {
-                sh 'npm install'
-                sh 'npm run build -- --prod'
+                // The git checkout will happen automatically in this agent
+                // We'll run the build inside a separate node container
+                sh 'docker run --rm -v ${pwd()}:/app -w /app node:20 /bin/bash -c "npm install && npm run build -- --prod"'
             }
         }
         
         stage('Build & Push Docker Image') {
-            agent {
-                docker {
-                    image 'docker:dind'
-                    args '-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine'
-                }
-            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
