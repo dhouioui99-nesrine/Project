@@ -1,31 +1,30 @@
 def DOCKERHUB_USERNAME = "nesrinedh"
 
 node() {
-    try {
-        stage('Checkout SCM') {
-            checkout scm
-        }
+    stage('Checkout SCM') {
+        checkout scm
+    }
 
-        stage('Full Pipeline') {
-            withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                sh """
-                    docker run --rm \\
-                    -v //./pipe/dockerDesktopEngine://./pipe/docker.sock \\
-                    -v ${pwd()}:/app \\
-                    -w /app \\
-                    node:20 /bin/bash -c "
-                        npm install && \\
-                        npm run build -- --prod && \\
-                        
-                        echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin && \\
-                        
-                        docker build -t ${DOCKERHUB_USERNAME}/frontend:latest . && \\
-                        docker push ${DOCKERHUB_USERNAME}/frontend:latest
-                    "
-                """
-            }
+    stage('Install & Build (Node in container)') {
+        sh '''
+          docker run --rm \
+            -v "$PWD":/app \
+            -w /app \
+            node:20 bash -lc "
+              npm ci || npm install
+              npm run build -- --prod
+            "
+        '''
+    }
+
+    stage('Docker Build & Push') {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh '''
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+              docker build -t ''' + DOCKERHUB_USERNAME + '''/frontend:${GIT_COMMIT} -t ''' + DOCKERHUB_USERNAME + '''/frontend:latest .
+              docker push ''' + DOCKERHUB_USERNAME + '''/frontend:${GIT_COMMIT}
+              docker push ''' + DOCKERHUB_USERNAME + '''/frontend:latest
+            '''
         }
-    } catch (e) {
-        throw e
     }
 }
