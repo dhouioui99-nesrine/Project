@@ -5,26 +5,41 @@ node() {
     checkout scm
   }
 
-  stage('Install & Build (Node in container)') {
+  stage('Docker sanity') {
     sh '''
-      docker run --rm \
-        -v "$PWD":/app \
-        -w /app \
-        node:20 bash -lc "
-          npm ci || npm install
-          npm run build -- --prod
-        "
+      set -e
+      docker version
+      docker info | head -n 20
     '''
   }
 
-  stage('Docker Build & Push') {
-    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+  withEnv(["IMAGE=${DOCKERHUB_USERNAME}/frontend"]) {
+
+    stage('Install & Build (Node in container)') {
       sh '''
-        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-        docker build -t ''' + DOCKERHUB_USERNAME + '''/frontend:${GIT_COMMIT} -t ''' + DOCKERHUB_USERNAME + '''/frontend:latest .
-        docker push ''' + DOCKERHUB_USERNAME + '''/frontend:${GIT_COMMIT}
-        docker push ''' + DOCKERHUB_USERNAME + '''/frontend:latest
+        set -e
+        docker run --rm \
+          -v "$PWD":/app \
+          -w /app \
+          node:20 bash -lc "
+            set -e
+            npm ci || npm install
+            npm run build -- --prod
+          "
       '''
+    }
+
+    stage('Docker Build & Push') {
+      withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+        sh '''
+          set -e
+          echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+          docker build -t "$IMAGE:${GIT_COMMIT}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${GIT_COMMIT}"
+          docker push "$IMAGE:latest"
+          docker logout || true
+        '''
+      }
     }
   }
 }
