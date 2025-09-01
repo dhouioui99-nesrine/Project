@@ -93,6 +93,15 @@ pipeline {
           }
         }
       }
+      stage('Deploy Container') {
+    steps {
+        sh """
+            docker stop backend || true
+            docker rm backend || true
+            docker run -d --name backend -p 8080:8080 $DOCKERHUB_USERNAME/$DOCKERHUB_REPO:$DEV_TAG
+        """
+    }
+}
     }
   }
 }       
