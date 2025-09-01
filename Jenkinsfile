@@ -7,21 +7,29 @@ node() {
         }
 
         stage('Full Pipeline') {
-            def dockerArgs = "-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine"
-            
-            // This block retrieves your Docker Hub credentials and makes them available
             withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                 sh """
-                    docker run --rm ${dockerArgs} \\
+                    docker run --rm \\
+                    -v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine \\
                     -v ${pwd()}:/app \\
                     -w /app \\
                     node:20 /bin/bash -c "
-                        npm install && \\
-                        npm run build -- --prod && \\
+                        # Set DOCKER_HOST to force Docker to use the named pipe
+                        export DOCKER_HOST='//./pipe/dockerDesktopEngine'
                         
-                        echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin && \\
+                        echo 'Starting npm install...'
+                        npm install
                         
-                        docker build -t ${DOCKERHUB_USERNAME}/frontend:latest . && \\
+                        echo 'Starting npm build...'
+                        npm run build -- --prod
+                        
+                        echo 'Logging into Docker Hub...'
+                        echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
+                        
+                        echo 'Building Docker image...'
+                        docker build -t ${DOCKERHUB_USERNAME}/frontend:latest .
+                        
+                        echo 'Pushing Docker image...'
                         docker push ${DOCKERHUB_USERNAME}/frontend:latest
                     "
                 """
