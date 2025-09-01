@@ -2,71 +2,64 @@ pipeline {
     agent any
 
     environment {
-        FRONTEND_DIR = 'front'   // Chemin vers votre projet Angular
-        DOCKER_IMAGE = 'nesrinedh/angular16-app:latest' // Nom de l'image Docker
+        DOCKERHUB_USER = credentials('dockerhub-user')  // Credentials DockerHub
+        DOCKERHUB_PASS = credentials('dockerhub-pass')
+        SONARQUBE     = 'SonarQubeServer'
     }
 
     stages {
-
-         stage('Checkout from GitHub') {
-      steps {
-        script {
-          branchName = params.BRANCH_NAME
-          if (!branchName?.trim()) {
-            error("❌ BRANCH_NAME is empty. Please provide a valid branch.")
-          }
-          targetBranch = branchName
-          git branch: branchName,
-              url: 'https://github.com/dhouioui99-nesrine/Project.git',
-              credentialsId: 'gitcredential'
-        }
-      }
-    }
-
-        stage('Frontend: Install Dependencies') {
+        stage('Checkout') {
             steps {
-                dir("${env.FRONTEND_DIR}") {
-                    sh 'npm install'
+                git branch: 'main', url: 'https://github.com/USERNAME/PROJECT.git', credentialsId: 'github-cred'
+            }
+        }
+
+        stage('Backend - Build & Test') {
+            steps {
+                dir('backend') {
+                    sh './mvnw clean test'
                 }
             }
         }
 
-        stage('Frontend: Build Angular') {
+        stage('backend - SonarQube Analysis') {
             steps {
-                dir("${env.FRONTEND_DIR}") {
-                    sh 'npm run build -- --prod'
-                }
-            }
-        }
-
-        stage('Frontend: Build Docker Image') {
-            steps {
-                dir("${env.FRONTEND_DIR}") {
-                    // Construire l'image Docker à partir du Dockerfile
-                    sh "docker build -t ${env.DOCKER_IMAGE} ."
-                }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    // Si vous utilisez un registry Docker (ex: Docker Hub)
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        sh "docker push ${env.DOCKER_IMAGE}"
+                dir('backend') {
+                    withSonarQubeEnv('SonarQubeServer') {
+                        sh './mvnw sonar:sonar'
                     }
                 }
             }
         }
-    }
 
-    post {
-        success {
-            echo 'Build Angular 16 et Docker réussis !'
+        stage('Frontend - Build') {
+            steps {
+                dir('frontend') {
+                    sh 'npm install'
+                    sh 'npm run build --prod'
+                }
+            }
         }
-        failure {
-            echo 'Le build a échoué.'
+
+        stage('Build Docker Images') {
+            steps {
+                sh "docker build -t ${DOCKERHUB_USER}/backend:latest ./backend"
+                sh "docker build -t ${DOCKERHUB_USER}/frontend:latest ./frontend"
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                sh "echo ${DOCKERHUB_PASS} | docker login -u ${DOCKERHUB_USER} --password-stdin"
+                sh "docker push ${DOCKERHUB_USER}/backend:latest"
+                sh "docker push ${DOCKERHUB_USER}/frontend:latest"
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh 'docker compose up -d'
+            }
         }
     }
 }
