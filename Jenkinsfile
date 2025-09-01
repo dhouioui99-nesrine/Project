@@ -1,37 +1,38 @@
 def DOCKERHUB_USERNAME = "nesrinedh"
 
-pipeline {
-    agent {
-        docker {
-            image 'node:20'
-            // Arguments to pass to the docker run command
-            args '-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine'
+node('master') {
+    // This part runs on the master Jenkins node
+    // It checks out the code here
+    try {
+        stage('Checkout SCM') {
+            checkout scm
         }
-    }
 
-    stages {
-        stage('Frontend - Build & Test') {
-            steps {
-                // The npm commands now run inside the 'node:20' container
-                sh 'npm install'
-                sh 'npm run build -- --prod'
-            }
+        // Now, we run all subsequent commands inside a single Docker container.
+        stage('Full Pipeline') {
+            // Use the same volume mount for Docker access from the host.
+            def dockerArgs = "-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine"
+            
+            // This single command runs all your build steps inside the container
+            sh """
+                docker run --rm ${dockerArgs} \\
+                -v ${pwd()}:/app \\
+                -w /app \\
+                node:20 /bin/bash -c "
+                    npm install && \\
+                    npm run build -- --prod && \\
+                    
+                    # You will need to re-log in to docker inside the container
+                    # You can pass the credentials as environment variables or a file
+                    echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin && \\
+                    
+                    docker build -t ${DOCKERHUB_USERNAME}/frontend:latest . && \\
+                    docker push ${DOCKERHUB_USERNAME}/frontend:latest
+                "
+            """
         }
-        
-        stage('Build Docker Image') {
-            steps {
-                // The docker commands run inside the 'node:20' container
-                sh "docker build -t ${DOCKERHUB_USERNAME}/frontend:latest ."
-            }
-        }
-        
-        stage('Push Docker Image') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
-                    sh "docker push ${DOCKERHUB_USERNAME}/frontend:latest"
-                }
-            }
-        }
+    } catch (e) {
+        // You can add a post-build action here to handle failures if you want
+        throw e
     }
 }
