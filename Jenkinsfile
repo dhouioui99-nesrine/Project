@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/USERNAME/PROJECT.git', credentialsId: 'projet'
+                git branch: 'main', url: 'https://github.com/USERNAME/PROJECT.git',  credentialsId: 'gitcredential'
             }
         }
 
