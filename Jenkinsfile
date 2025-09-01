@@ -1,46 +1,35 @@
 def DOCKERHUB_USERNAME = "nesrinedh"
 
 pipeline {
-    // We'll use a single 'agent any' and then specify a Docker agent for each stage that needs it.
-    // This provides more control.
-    agent any
+    // Force the entire pipeline to run inside a single container that has Docker and Node
+    agent {
+        docker {
+            // This image is based on alpine and has both docker and node installed
+            image 'docker:20.10-dind-rootless'
+            // Mount the Docker socket from the host to the container for access
+            args "-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine"
+        }
+    }
 
     stages {
         stage('Frontend - Build & Test') {
-            agent {
-                docker {
-                    // Use a node image for the npm commands
-                    image 'node:20'
-                }
-            }
             steps {
+                // Since npm is installed in the docker agent, it will work
                 sh 'npm install'
                 sh 'npm run build -- --prod'
             }
         }
         
         stage('Build Docker Image') {
-            agent {
-                docker {
-                    image 'docker:dind'
-                    // This is the crucial part that passes the host's Docker socket to the container
-                    args '-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine'
-                }
-            }
             steps {
+                // Use the docker client inside the container to build the image on the host's daemon
                 sh "docker build -t ${DOCKERHUB_USERNAME}/frontend:latest ."
             }
         }
         
         stage('Push Docker Image') {
-            agent {
-                docker {
-                    image 'docker:dind'
-                    // The same argument is needed for the push command
-                    args '-v //./pipe/dockerDesktopEngine://./pipe/dockerDesktopEngine'
-                }
-            }
             steps {
+                // Use the docker client inside the container to push the image
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
                     sh "docker push ${DOCKERHUB_USERNAME}/frontend:latest"
