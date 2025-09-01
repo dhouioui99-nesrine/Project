@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_USER = credentials('dockerhub-user')  // Credentials DockerHub
-        DOCKERHUB_PASS = credentials('dockerhub-pass')
+        DOCKERHUB_PASS = credentials('gitcredential')
         SONARQUBE     = 'SonarQubeServer'
     }
 
